@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
-interface ISTakingXYZ {
+interface IStakingXYZ {
     // address relayer;
 
     // mapping(uint256 => Receipt[]) public receipts;
@@ -29,7 +29,7 @@ interface ISTakingXYZ {
      *      - saves undelegation data: Receipt(amount, block.timestamp) in `receipts[ID]`
      *
      *
-     * @return undelegation identifier
+     * @return ID undelegation identifier
      */
     function undelegate(
         address validator,
@@ -43,7 +43,7 @@ interface ISTakingXYZ {
      *      - sends `receipts[id].amount` to `msg.sender` (sXYZ)
      *
      *
-     * @return undelegated amount
+     * @return amount undelegated amount
      */
     function withdrawUndelegated(
         uint256 id

@@ -3,7 +3,9 @@ pragma solidity 0.8.17;
 
 interface ISTakingXYZ {
     // address relayer;
-    // IsXYZ public sXYZ;
+
+    // mapping(uint256 => Receipt[]) public receipts;
+    // mapping(address => bool) public registeredValidators;
 
     struct Receipt {
         uint256 amount;
@@ -12,16 +14,22 @@ interface ISTakingXYZ {
 
     // delegate `amount` to `validator`
     /**
-     * @dev - checks `validator` is registered in StakingXYZ, otherwise reverts
-     *      - sends `amount` to `validator`
-     *      - sends `getRelayerFee()` to `relayer`
+     * @dev - reverts if: `validator` not in `registeredValidators`
+     *
+     *      - sends `amount` to `validator` (from `msg.value`)
+     *      - sends `getRelayerFee()` to `relayer` (from `msg.value`)
      */
     function delegate(address validator, uint256 amount) external payable;
 
     // undelegate `amount` from `validator`
     /**
-     * @dev - checks `validator` is registered in StakingXYZ, otherwise reverts
-     *      - queue `amount` undelegation from `validator`
+     * @dev - reverts if: `validator` not in `registeredValidators`
+     *
+     *      - queue `amount` for undelegation from `validator`
+     *      - saves undelegation data: Receipt(amount, block.timestamp) in `receipts[ID]`
+     *
+     *
+     * @return undelegation identifier
      */
     function undelegate(
         address validator,
@@ -30,7 +38,11 @@ interface ISTakingXYZ {
 
     // claim undelegated amount once pending undelegate time has elapsed
     /**
-     * @dev reverts if: `block.timestamp < ids[id].unstakedAt + getUndelegateTime()`
+     * @dev - reverts if: `block.timestamp < receipts[id].unstakedAt + getUndelegateTime()`
+     *
+     *      - sends `receipts[id].amount` to `msg.sender` (sXYZ)
+     *
+     *
      * @return undelegated amount
      */
     function withdrawUndelegated(
@@ -41,7 +53,10 @@ interface ISTakingXYZ {
     function claimReward() external returns (uint256 amount);
 
     // Get the total amount delegated by a delegator
-    ///@return `sXYZ.netTotalDelegated(delegator)`
+    /**
+     * @dev As only sXYZ is using this contract in this scope, it will return
+     *      `IsXYZ(delegator).totalSupply()`.
+     */
     function getTotalDelegated(
         address delegator
     ) external view returns (uint256);

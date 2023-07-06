@@ -7,13 +7,10 @@ solc_version = "0.8.17"
 gas_reports = ["*"]
 optimizer = true
 optimizer_runs = 20_000
-via_ir = true
-
 
 [profile.ci]
 verbosity = 4
 # avoid stack too deep issue due to permit2 using: `--via-ir`
-via_ir = true
 
 [profile.ci.fuzz]
 runs = 10

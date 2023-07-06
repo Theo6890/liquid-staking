@@ -10,7 +10,6 @@ contract sXYZ is ERC20, ReentrancyGuard {
     uint256 public total_staked_amount;
     uint256 public rewardsToClaim;
 
-    mapping(address => uint256) public netTotalDelegated;
     mapping(address => uint256) public lastUnlockID;
 
     constructor(ISTakingXYZ stakingXYZ_) ERC20("Staked XYZ", "sXYZ") {
@@ -46,7 +45,6 @@ contract sXYZ is ERC20, ReentrancyGuard {
         uint256 netDeposit = msg.value - stakingXYZ.getRelayerFee();
 
         total_staked_amount += netDeposit;
-        netTotalDelegated[msg.sender] += netDeposit;
 
         _mint(msg.sender, netDeposit);
 
@@ -54,12 +52,10 @@ contract sXYZ is ERC20, ReentrancyGuard {
     }
 
     function unlock(address validator, uint256 amount) public nonReentrant {
-        uint256 delegated = netTotalDelegated[msg.sender];
-        require(amount <= delegated, "sXYZ: amount > delegated");
         require(lastUnlockID[msg.sender] == 0, "sXYZ: pending undelegation");
 
-        // rewardsToClaim -= unstaked;
-
+        // require(accountBalance >= amount...) allows to check `amount` is not
+        // greater to net delegated amount
         _burn(msg.sender, amount);
 
         lastUnlockID[msg.sender] = stakingXYZ.undelegate(validator, amount);
@@ -67,13 +63,16 @@ contract sXYZ is ERC20, ReentrancyGuard {
 
     function withdraw(uint256 ID) public nonReentrant {
         uint256 unstaked = stakingXYZ.withdrawUndelegated(ID);
+        uint256 earned = getRewardsOf(msg.sender, unstaked);
 
-        total_staked_amount -= amount;
-        // rewardsToClaim -= unstaked;
-        netTotalDelegated[msg.sender] -= unstaked;
-        lastUnlockID[msg.sender][msg.sender] = 0;
+        // update total staked here as undelegate can potentially fail even if
+        // unlock does not fail
+        total_staked_amount -= unstaked;
+        rewardsToClaim -= earned;
 
-        (bool sent, ) = payable(msg.sender).call{value: unstaked}(
+        lastUnlockID[msg.sender] = 0;
+
+        (bool sent, ) = payable(msg.sender).call{value: unstaked + earned}(
             "sXYZ withdrawl"
         );
         require(sent, "Failed to send Ether");
@@ -83,10 +82,9 @@ contract sXYZ is ERC20, ReentrancyGuard {
         address delegator,
         uint255 unstaked
     ) public view returns (uint256) {
-        uint256 portionUnstaked = (unstaked * 1 ether) /
-            netTotalDelegated[delegator];
-        uint256 portionOfTotalStaked = (netTotalDelegated[delegator] *
-            1 ether) / total_staked_amount;
+        uint256 portionUnstaked = (unstaked * 1 ether) / balanceOf(delegator);
+        uint256 portionOfTotalStaked = (balanceOf(delegator) * 1 ether) /
+            total_staked_amount;
 
         return rewardsToClaim * portionUnstaked * portionOfTotalStaked;
     }

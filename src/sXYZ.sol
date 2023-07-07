@@ -8,14 +8,19 @@ import {IStakingXYZ} from "./IStakingXYZ.sol";
 
 contract sXYZ is ERC20, ReentrancyGuard {
     IStakingXYZ public stakingXYZ;
+    address public validator;
 
     uint256 public total_staked_amount;
     uint256 public rewardsToClaim;
 
     mapping(address => uint256) public lastUnlockID;
 
-    constructor(IStakingXYZ stakingXYZ_) ERC20("Staked XYZ", "sXYZ") {
+    constructor(
+        IStakingXYZ stakingXYZ_,
+        address validator_
+    ) ERC20("Staked XYZ", "sXYZ") {
         stakingXYZ = stakingXYZ_;
+        validator = validator_;
     }
 
     // TODO: receive ETH from stakingXYZ
@@ -39,7 +44,7 @@ contract sXYZ is ERC20, ReentrancyGuard {
      *      lost, forgotten staking, stake forever as truly believes in the
      *      protocol....).
      */
-    function deposit(address validator) public payable {
+    function deposit() public payable {
         require(
             msg.value > stakingXYZ.getRelayerFee(),
             "sXYZ: deposit <= relayerFee"
@@ -53,7 +58,7 @@ contract sXYZ is ERC20, ReentrancyGuard {
         stakingXYZ.delegate{value: msg.value}(validator, netDeposit);
     }
 
-    function unlock(address validator, uint256 amount) public nonReentrant {
+    function unlock(uint256 amount) public nonReentrant {
         require(lastUnlockID[msg.sender] == 0, "sXYZ: pending undelegation");
 
         // require(accountBalance >= amount...) allows to check `amount` is not

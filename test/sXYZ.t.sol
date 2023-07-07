@@ -9,11 +9,15 @@ import {sXYZ} from "../src/sXYZ.sol";
 
 contract sXYZ_Test is Test {
     IStakingXYZ public stakingXYZ;
+    address public validator;
+
     sXYZ public sxyz;
 
     function setUp() public {
-        stakingXYZ = IStakingXYZ(address(0));
-        sxyz = new sXYZ(stakingXYZ);
+        stakingXYZ = IStakingXYZ(makeAddr("StakingXYZ"));
+        validator = makeAddr("validator");
+
+        sxyz = new sXYZ(stakingXYZ, validator);
 
         // to avoid vm.mockCall issue on zero bytecode address
         vm.etch(address(stakingXYZ), bytes("0x6080604052348015610010"));

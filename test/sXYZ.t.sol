@@ -61,6 +61,25 @@ contract sXYZ_Test is Test {
         sxyz.deposit{value: relayerFee - 1}();
     }
 
+    function test_unlock_all() public {
+        uint256 netDeposit = _deposit_10_XYZ();
+
+        uint256 ID = _unlock_XYZ(netDeposit);
+
+        assertEq(sxyz.balanceOf(address(this)), 0);
+        assertEq(sxyz.lastUnlockID(address(this)), ID);
+    }
+
+    function test_unlock_half() public {
+        uint256 netDeposit = _deposit_10_XYZ();
+        uint256 amount = netDeposit / 2;
+
+        uint256 ID = _unlock_XYZ(amount);
+
+        assertEq(sxyz.balanceOf(address(this)), netDeposit / 2);
+        assertEq(sxyz.lastUnlockID(address(this)), ID);
+    }
+
     function _deposit_10_XYZ() internal returns (uint256 netDeposit) {
         vm.mockCall(
             address(stakingXYZ),
@@ -71,5 +90,21 @@ contract sXYZ_Test is Test {
         sxyz.deposit{value: 10 ether}();
 
         return 10 ether - relayerFee;
+    }
+
+    function _unlock_XYZ(uint256 amount) internal returns (uint256 ID) {
+        ID = uint256(
+            keccak256(
+                abi.encodePacked(address(stakingXYZ), address(this), amount)
+            )
+        );
+
+        vm.mockCall(
+            address(stakingXYZ),
+            abi.encodeWithSelector(stakingXYZ.undelegate.selector),
+            abi.encode(ID)
+        );
+
+        sxyz.unlock(amount);
     }
 }

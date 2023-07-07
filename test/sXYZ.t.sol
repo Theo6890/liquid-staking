@@ -43,15 +43,7 @@ contract sXYZ_Test is Test {
     function test_deposit() public {
         assertEq(payable(address(stakingXYZ)).balance, 0);
 
-        vm.mockCall(
-            address(stakingXYZ),
-            abi.encodeWithSelector(stakingXYZ.getRelayerFee.selector),
-            abi.encode(relayerFee)
-        );
-
-        sxyz.deposit{value: 10 ether}();
-
-        uint256 netDeposit = 10 ether - relayerFee;
+        uint256 netDeposit = _deposit_10_XYZ();
 
         assertEq(sxyz.total_staked_amount(), netDeposit);
         assertEq(sxyz.balanceOf(address(this)), netDeposit);
@@ -67,5 +59,17 @@ contract sXYZ_Test is Test {
 
         vm.expectRevert("sXYZ: deposit <= relayerFee");
         sxyz.deposit{value: relayerFee - 1}();
+    }
+
+    function _deposit_10_XYZ() internal returns (uint256 netDeposit) {
+        vm.mockCall(
+            address(stakingXYZ),
+            abi.encodeWithSelector(stakingXYZ.getRelayerFee.selector),
+            abi.encode(relayerFee)
+        );
+
+        sxyz.deposit{value: 10 ether}();
+
+        return 10 ether - relayerFee;
     }
 }

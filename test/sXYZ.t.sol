@@ -80,6 +80,16 @@ contract sXYZ_Test is Test {
         assertEq(sxyz.lastUnlockID(address(this)), ID);
     }
 
+    function testRevert_unlock_When_PendingUnDelegation() public {
+        uint256 netDeposit = _deposit_10_XYZ();
+        uint256 amount = netDeposit / 2;
+
+        _unlock_XYZ(amount);
+
+        vm.expectRevert("sXYZ: pending undelegation");
+        sxyz.unlock(amount);
+    }
+
     function _deposit_10_XYZ() internal returns (uint256 netDeposit) {
         vm.mockCall(
             address(stakingXYZ),

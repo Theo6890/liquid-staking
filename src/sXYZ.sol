@@ -11,7 +11,6 @@ contract sXYZ is ERC20, ReentrancyGuard {
     address public validator;
 
     uint256 public total_staked_amount;
-    uint256 public rewardsToClaim;
 
     mapping(address => uint256) public lastUnlockID;
 
@@ -30,7 +29,6 @@ contract sXYZ is ERC20, ReentrancyGuard {
 
     function claimRewards() public {
         total_staked_amount += stakingXYZ.claimReward();
-        rewardsToClaim += stakingXYZ.claimReward();
     }
 
     /**
@@ -69,30 +67,28 @@ contract sXYZ is ERC20, ReentrancyGuard {
     }
 
     function withdraw(uint256 ID) public nonReentrant {
-        uint256 unstaked = stakingXYZ.withdrawUndelegated(ID);
-        uint256 earned = getRewardsOf(msg.sender, unstaked);
+        uint256 receive = (stakingXYZ.withdrawUndelegated(ID) * rate()) / 1e18;
 
         // update total staked here as undelegate can potentially fail even if
         // unlock does not fail
-        total_staked_amount -= unstaked;
-        rewardsToClaim -= earned;
+        total_staked_amount -= receive;
 
         lastUnlockID[msg.sender] = 0;
 
-        (bool sent, ) = payable(msg.sender).call{value: unstaked + earned}(
+        (bool sent, ) = payable(msg.sender).call{value: receive}(
             "sXYZ withdrawl"
         );
         require(sent, "Failed to send Ether");
     }
 
-    function getRewardsOf(
-        address delegator,
-        uint256 unstaked
-    ) public view returns (uint256) {
-        uint256 portionUnstaked = (unstaked * 1 ether) / balanceOf(delegator);
-        uint256 portionOfTotalStaked = (balanceOf(delegator) * 1 ether) /
-            total_staked_amount;
-
-        return rewardsToClaim * portionUnstaked * portionOfTotalStaked;
+    /**
+     * @dev As a cToken, sYXZ price always increases over time which means: 1 sXYZ > 1 XYZ
+     * @return rate of 1 sXYZ against XYZ
+     */
+    function rate() public view returns (uint256) {
+        return
+            totalSupply() == 0
+                ? 1e18
+                : total_staked_amount / totalSupply() / 1e18;
     }
 }

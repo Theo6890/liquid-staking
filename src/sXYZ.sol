@@ -22,11 +22,12 @@ contract sXYZ is ERC20, ReentrancyGuard {
         validator = validator_;
     }
 
-    // TODO: receive ETH from stakingXYZ
     fallback() external payable {
-        // checks msg.data to ensure it comes from `stakingXYZ.withdrawUndelegated`
+        // checks msg.data to ensure it comes from `stakingXYZ.claimReward()`
+        // or `stakingXYZ.withdrawUndelegated(...)` otherwise reverts
     }
 
+    /// @dev XYZ are deposited through `fallback()` when calling this function
     function claimRewards() public {
         total_staked_amount += stakingXYZ.claimReward();
     }
@@ -66,16 +67,18 @@ contract sXYZ is ERC20, ReentrancyGuard {
         lastUnlockID[msg.sender] = stakingXYZ.undelegate(validator, amount);
     }
 
+    /// @dev Transfer rewards deposited in this contract, when unstaking XYZ
     function withdraw(uint256 ID) public nonReentrant {
-        uint256 receive = (stakingXYZ.withdrawUndelegated(ID) * rate()) / 1e18;
+        uint256 received = (stakingXYZ.withdrawUndelegated(ID) * rate()) /
+            1e18;
 
-        // update total staked here as undelegate can potentially fail even if
-        // unlock does not fail
-        total_staked_amount -= receive;
+        // update total staked here as undelegate(...) can potentially fail even
+        // if `unlock(...)` does not fail
+        total_staked_amount -= received;
 
         lastUnlockID[msg.sender] = 0;
 
-        (bool sent, ) = payable(msg.sender).call{value: receive}(
+        (bool sent, ) = payable(msg.sender).call{value: received}(
             "sXYZ withdrawl"
         );
         require(sent, "Failed to send Ether");

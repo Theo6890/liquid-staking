@@ -1,6 +1,4 @@
-# Tenderize Take Home Project
-
-## Assignment
+# Assignment
 
 Create a simple liquid staking contract for a fictive native token XYZ (cfr. ETH on mainnet, not ERC20) that can be staked in StakingXYZ.
 
